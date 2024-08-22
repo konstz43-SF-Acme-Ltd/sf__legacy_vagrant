@@ -1,0 +1,14 @@
+#!/bin/ansible-playbook
+# code: language=ansible
+- name: Installing PostgeSQL on VM
+  hosts: all
+  become: yes
+  vars:
+  - pg_version: "8.4"
+  - pg_data_dir: "/var/lib/postgresql/8.4/main"
+  - pg_db_name: "test_db"
+  - pg_db_user: "pgdbuser"
+  - pg_db_user_md5pw: "md5d223be35a58dd0461949aedfe0e262cf"
+  - ansible_user: "vagrant"
+  roles:
+  - roles/b7_pg
