@@ -1,0 +1,14 @@
+---
+# code: language=ansible
+# optional tasks file for roles/b7_pg
+# Create an database
+- name: Install the required psycopg2 library
+  ansible.builtin.apt:
+    package:
+      - python3-psycopg2
+    state: present
+
+- name: Create an PostgreSQL database
+  community.postgresql.postgresql_db:
+    name: "{{ pg_db_name }}"
+    state: present

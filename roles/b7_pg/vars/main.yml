@@ -1,0 +1,3 @@
+---
+# vars file for roles/b7_pg
+key_path: "/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc"

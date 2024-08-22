@@ -1,0 +1,82 @@
+---
+# tasks file for roles/b7_pg
+# Install and run PostgreSQL-server
+
+- name: Create a directory for keyrings if it does not exist
+  ansible.builtin.file:
+    path: /usr/share/postgresql-common/pgdg
+    state: directory
+    mode: '0755'
+
+- name: Import the repository key
+  ansible.builtin.get_url:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    dest: "{{ key_path }}"
+    mode: 'a+r'
+
+- name: Add the repository to Apt sources
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by={{ key_path }}] https://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    filename: 'pgdg'
+    state: present
+
+- name: Install the PostgreSQL server core packages
+  ansible.builtin.apt:
+    pkg: "postgresql-{{ pg_version }}"
+    update_cache: true
+    state: present
+  notify:
+  - Restart PostgreSQL Cluster service
+
+- name: Change PostgreSQL's data_directory
+  ansible.builtin.lineinfile:
+    destfile: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+    state: present
+    backrefs: true
+    regexp: "(^data_directory = ').*('.*)$"
+    line: '\1{{ pg_data_dir }}\2'
+  notify:
+  - Restart PostgreSQL Cluster service
+
+- name: Allow TCP connections on localhost
+  ansible.builtin.lineinfile:
+    destfile: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+    state: present
+    backrefs: true
+    regexp: "^#(listen_addresses.*localhost)(.*)$"
+    line: '\1, 172.17.0.1\2'
+  notify:
+  - Restart PostgreSQL Cluster service
+
+- name: Allow system user to connect as "postgres"
+  block:
+  - name: Edit pg_ident file
+    ansible.builtin.lineinfile:
+      destfile: "/etc/postgresql/{{ pg_version }}/main/pg_ident.conf"
+      state: present
+      regexp: '^{{ ansible_user }}\s*{{ item }}\s*postgres\s*$'
+      line: "{{ ansible_user }}		{{ item }}			postgres"
+    loop:
+    - "{{ ansible_user }}"
+    - root
+    - postgres
+    notify:
+    - Restart PostgreSQL Cluster service
+
+  - name: Edit pg_hba file
+    ansible.builtin.lineinfile:
+      destfile: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+      state: present
+      backrefs: true
+      regexp: '(^local\s*all\s*postgres\s*peer)\s*$'
+      line: '\1 map={{ ansible_user }}'
+    notify:
+    - Restart PostgreSQL Cluster service
+
+- name: Edit pg_hba file - Allow to connect from docker containers
+  ansible.builtin.lineinfile:
+    destfile: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+    state: present
+    line: "host    all             all             172.17.0.0/16           md5"
+  notify:
+  - Restart PostgreSQL Cluster service

@@ -1,0 +1,23 @@
+---
+# code: language=ansible
+# optional tasks file for roles/b7_pg
+# Create an database user
+
+- name: Install the required psycopg2 library
+  ansible.builtin.apt:
+    package:
+      - python3-psycopg2
+    state: present
+
+- name: Create an database user
+  community.postgresql.postgresql_user:
+    name: "{{ pg_db_user }}"
+    password: "{{ pg_db_user_md5pw }}"
+    db: "{{ pg_db_name }}"
+    state: present
+
+- name: Change the owner of database
+  community.postgresql.postgresql_db:
+    name: "{{ pg_db_name }}"
+    owner: "{{ pg_db_user }}"
+    state: present

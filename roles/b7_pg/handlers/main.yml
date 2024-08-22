@@ -1,0 +1,6 @@
+---
+# handlers file for roles/b7_pg
+- name: Restart PostgreSQL Cluster service
+  ansible.builtin.service:
+    name: "postgresql@{{ pg_version }}-main.service"
+    state: restarted
